@@ -18,16 +18,32 @@ const (
 
 // The version numbers, making grepping easier
 const (
-	VersionTLS      VersionNumber = 0x1
-	VersionWhatever VersionNumber = math.MaxUint32 - 1 // for when the version doesn't matter
-	VersionUnknown  VersionNumber = math.MaxUint32
-	VersionDraft29  VersionNumber = 0xff00001d
-	Version1        VersionNumber = 0x1
+	VersionTLS               VersionNumber = 0x1
+	VersionWhatever          VersionNumber = math.MaxUint32 - 1 // for when the version doesn't matter
+	VersionUnknown           VersionNumber = math.MaxUint32
+	VersionDraft29           VersionNumber = 0xff00001d
+	Version1                 VersionNumber = 0x1
+	VersionSCIONExperimental VersionNumber = 0x5c10000f
 )
 
 // SupportedVersions lists the versions that the server supports
 // must be in sorted descending order
-var SupportedVersions = []VersionNumber{Version1, VersionDraft29}
+var SupportedVersions = []VersionNumber{
+	VersionSCIONExperimental,
+	Version1,
+	VersionDraft29,
+}
+
+func IsSCIONVersion(v VersionNumber) bool {
+	return v >= 0x5c100000 && v <= 0x5c10000f
+}
+
+func GetMinInitialPacketSize(v VersionNumber) ByteCount {
+	if IsSCIONVersion(v) {
+		return MinSCIONInitialPacketSize
+	}
+	return MinInitialPacketSize
+}
 
 // IsValidVersion says if the version is known to quic-go
 func IsValidVersion(v VersionNumber) bool {
@@ -48,6 +64,8 @@ func (vn VersionNumber) String() string {
 		return "unknown"
 	case VersionDraft29:
 		return "draft-29"
+	case VersionSCIONExperimental:
+		return "scion-experimental"
 	case Version1:
 		return "v1"
 	default:
