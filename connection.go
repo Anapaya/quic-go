@@ -256,6 +256,7 @@ var newConnection = func(
 		logger:              logger,
 		version:             v,
 	}
+	initialPacketSize := s.initialPacketSize()
 	if origDestConnID.Len() > 0 {
 		s.logID = origDestConnID.String()
 	} else {
@@ -284,7 +285,7 @@ var newConnection = func(
 	s.rttStats.SetInitialRTT(rtt)
 	s.sentPacketHandler, s.receivedPacketHandler = ackhandler.NewAckHandler(
 		0,
-		protocol.ByteCount(s.config.InitialPacketSize),
+		initialPacketSize,
 		s.rttStats,
 		clientAddressValidated,
 		s.conn.capabilities().ECN,
@@ -292,7 +293,7 @@ var newConnection = func(
 		s.tracer,
 		s.logger,
 	)
-	s.currentMTUEstimate.Store(uint32(estimateMaxPayloadSize(protocol.ByteCount(s.config.InitialPacketSize))))
+	s.currentMTUEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
 	statelessResetToken := statelessResetter.GetStatelessResetToken(srcConnID)
 	params := &wire.TransportParameters{
 		InitialMaxStreamDataBidiLocal:   protocol.ByteCount(s.config.InitialStreamReceiveWindow),
@@ -396,9 +397,11 @@ var newClientConnection = func(
 	)
 	s.ctx, s.ctxCancel = context.WithCancelCause(ctx)
 	s.preSetup()
+
+	initialPacketSize := s.initialPacketSize()
 	s.sentPacketHandler, s.receivedPacketHandler = ackhandler.NewAckHandler(
 		initialPacketNumber,
-		protocol.ByteCount(s.config.InitialPacketSize),
+		initialPacketSize,
 		s.rttStats,
 		false, // has no effect
 		s.conn.capabilities().ECN,
@@ -406,7 +409,7 @@ var newClientConnection = func(
 		s.tracer,
 		s.logger,
 	)
-	s.currentMTUEstimate.Store(uint32(estimateMaxPayloadSize(protocol.ByteCount(s.config.InitialPacketSize))))
+	s.currentMTUEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
 	oneRTTStream := newCryptoStream()
 	params := &wire.TransportParameters{
 		InitialMaxStreamDataBidiRemote: protocol.ByteCount(s.config.InitialStreamReceiveWindow),
@@ -2041,7 +2044,7 @@ func (c *Conn) applyTransportParameters() {
 	}
 	c.mtuDiscoverer = newMTUDiscoverer(
 		c.rttStats,
-		protocol.ByteCount(c.config.InitialPacketSize),
+		c.initialPacketSize(),
 		maxPacketSize,
 		c.tracer,
 	)
@@ -2469,7 +2472,7 @@ func (c *Conn) maxPacketSize() protocol.ByteCount {
 		// If the server sends a max_udp_payload_size that's smaller than this size, we can ignore this:
 		// Apparently the server still processed the (fully padded) Initial packet anyway.
 		if c.perspective == protocol.PerspectiveClient {
-			return protocol.ByteCount(c.config.InitialPacketSize)
+			return c.initialPacketSize()
 		}
 		// On the server side, there's no downside to using 1200 bytes until we received the client's transport
 		// parameters:
@@ -2700,6 +2703,16 @@ func (c *Conn) NextConnection(ctx context.Context) (*Conn, error) {
 		c.streamsMap.UseResetMaps()
 	}
 	return c, nil
+}
+
+func (c *Conn) initialPacketSize() protocol.ByteCount {
+	if c.config.InitialPacketSize != protocol.InitialPacketSize {
+		return protocol.ByteCount(c.config.InitialPacketSize)
+	}
+	// XXX: InitialPacketSize has been adjusted in
+	// https://github.com/quic-go/quic-go/pull/4500/files. However, we still rely on
+	// the old behavior for now.
+	return protocol.GetMinInitialPacketSize(c.version)
 }
 
 // estimateMaxPayloadSize estimates the maximum payload size for short header packets.
