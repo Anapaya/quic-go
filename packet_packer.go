@@ -115,8 +115,8 @@ func (p *longHeaderPacket) ToAckHandlerPacket(now time.Time, q *retransmissionQu
 	return ap
 }
 
-func getMaxPacketSize(addr net.Addr) protocol.ByteCount {
-	maxSize := protocol.ByteCount(protocol.MinInitialPacketSize)
+func getMaxPacketSize(addr net.Addr, version protocol.VersionNumber) protocol.ByteCount {
+	maxSize := protocol.GetMinInitialPacketSize(version)
 	// If this is not a UDP address, we don't know anything about the MTU.
 	// Use the minimum size of an Initial packet as the max packet size.
 	if udpAddr, ok := addr.(*net.UDPAddr); ok {
@@ -175,7 +175,7 @@ type packetPacker struct {
 
 var _ packer = &packetPacker{}
 
-func newPacketPacker(srcConnID protocol.ConnectionID, getDestConnID func() protocol.ConnectionID, initialStream cryptoStream, handshakeStream cryptoStream, packetNumberManager packetNumberManager, retransmissionQueue *retransmissionQueue, remoteAddr net.Addr, cryptoSetup sealingManager, framer frameSource, acks ackFrameSource, datagramQueue *datagramQueue, perspective protocol.Perspective) *packetPacker {
+func newPacketPacker(srcConnID protocol.ConnectionID, getDestConnID func() protocol.ConnectionID, initialStream cryptoStream, handshakeStream cryptoStream, packetNumberManager packetNumberManager, retransmissionQueue *retransmissionQueue, remoteAddr net.Addr, cryptoSetup sealingManager, framer frameSource, acks ackFrameSource, datagramQueue *datagramQueue, perspective protocol.Perspective, version protocol.VersionNumber) *packetPacker {
 	return &packetPacker{
 		cryptoSetup:         cryptoSetup,
 		getDestConnID:       getDestConnID,
@@ -188,7 +188,7 @@ func newPacketPacker(srcConnID protocol.ConnectionID, getDestConnID func() proto
 		framer:              framer,
 		acks:                acks,
 		pnManager:           packetNumberManager,
-		maxPacketSize:       getMaxPacketSize(remoteAddr),
+		maxPacketSize:       getMaxPacketSize(remoteAddr, version),
 	}
 }
 
@@ -359,7 +359,7 @@ func (p *packetPacker) initialPaddingLen(frames []*ackhandler.Frame, size protoc
 func (p *packetPacker) PackCoalescedPacket(onlyAck bool, v protocol.VersionNumber) (*coalescedPacket, error) {
 	maxPacketSize := p.maxPacketSize
 	if p.perspective == protocol.PerspectiveClient {
-		maxPacketSize = protocol.MinInitialPacketSize
+		maxPacketSize = protocol.GetMinInitialPacketSize(v)
 	}
 	var (
 		initialHdr, handshakeHdr, zeroRTTHdr                            *wire.ExtendedHeader
