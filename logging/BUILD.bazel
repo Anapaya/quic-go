@@ -1,0 +1,41 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "frame.go",
+        "interface.go",
+        "mockgen.go",
+        "multiplex.go",
+        "packet_header.go",
+        "types.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/logging",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "//internal/qerr:go_default_library",
+        "//internal/utils:go_default_library",
+        "//internal/wire:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "logging_suite_test.go",
+        "mock_connection_tracer_test.go",
+        "mock_tracer_test.go",
+        "multiplex_test.go",
+        "packet_header_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "//internal/utils:go_default_library",
+        "//internal/wire:go_default_library",
+        "@com_github_golang_mock//gomock:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

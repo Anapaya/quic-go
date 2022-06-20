@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "error_codes.go",
+        "errors.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/internal/qerr",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "//internal/qtls:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "errorcodes_test.go",
+        "errors_suite_test.go",
+        "errors_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/lucas-clemente/quic-go/example",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//:go_default_library",
+        "//http3:go_default_library",
+        "//internal/testdata:go_default_library",
+        "//internal/utils:go_default_library",
+        "//logging:go_default_library",
+        "//qlog:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "example",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

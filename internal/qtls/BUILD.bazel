@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "go116.go",
+        "go117.go",
+        "go118.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/internal/qtls",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_marten_seemann_qtls_go1_16//:go_default_library",
+        "@com_github_marten_seemann_qtls_go1_17//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "qtls_suite_test.go",
+        "qtls_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "@com_github_golang_mock//gomock:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

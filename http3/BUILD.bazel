@@ -1,0 +1,60 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "body.go",
+        "client.go",
+        "error_codes.go",
+        "frames.go",
+        "gzip_reader.go",
+        "request.go",
+        "request_writer.go",
+        "response_writer.go",
+        "roundtrip.go",
+        "server.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/http3",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:go_default_library",
+        "//internal/handshake:go_default_library",
+        "//internal/protocol:go_default_library",
+        "//internal/qtls:go_default_library",
+        "//internal/utils:go_default_library",
+        "//quicvarint:go_default_library",
+        "@com_github_marten_seemann_qpack//:go_default_library",
+        "@org_golang_x_net//http/httpguts:go_default_library",
+        "@org_golang_x_net//http2/hpack:go_default_library",
+        "@org_golang_x_net//idna:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "body_test.go",
+        "client_test.go",
+        "error_codes_test.go",
+        "frames_test.go",
+        "http3_suite_test.go",
+        "request_test.go",
+        "request_writer_test.go",
+        "response_writer_test.go",
+        "roundtrip_test.go",
+        "server_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//:go_default_library",
+        "//internal/mocks/quic:go_default_library",
+        "//internal/protocol:go_default_library",
+        "//internal/testdata:go_default_library",
+        "//internal/utils:go_default_library",
+        "//quicvarint:go_default_library",
+        "@com_github_golang_mock//gomock:go_default_library",
+        "@com_github_marten_seemann_qpack//:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

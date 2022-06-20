@@ -1,0 +1,48 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "event.go",
+        "frame.go",
+        "packet_header.go",
+        "qlog.go",
+        "trace.go",
+        "types.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/qlog",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:go_default_library",
+        "//internal/protocol:go_default_library",
+        "//internal/qerr:go_default_library",
+        "//internal/utils:go_default_library",
+        "//internal/wire:go_default_library",
+        "//logging:go_default_library",
+        "@com_github_francoispqt_gojay//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "event_test.go",
+        "frame_test.go",
+        "packet_header_test.go",
+        "qlog_suite_test.go",
+        "qlog_test.go",
+        "types_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//:go_default_library",
+        "//internal/protocol:go_default_library",
+        "//internal/qerr:go_default_library",
+        "//internal/utils:go_default_library",
+        "//internal/wire:go_default_library",
+        "//logging:go_default_library",
+        "@com_github_francoispqt_gojay//:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

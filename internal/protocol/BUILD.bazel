@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "connection_id.go",
+        "encryption_level.go",
+        "key_phase.go",
+        "packet_number.go",
+        "params.go",
+        "perspective.go",
+        "protocol.go",
+        "stream.go",
+        "version.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/internal/protocol",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "connection_id_test.go",
+        "encryption_level_test.go",
+        "key_phase_test.go",
+        "packet_number_test.go",
+        "params_test.go",
+        "perspective_test.go",
+        "protocol_suite_test.go",
+        "protocol_test.go",
+        "stream_test.go",
+        "version_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

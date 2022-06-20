@@ -1,0 +1,49 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "atomic_bool.go",
+        "buffered_write_closer.go",
+        "byteinterval_linkedlist.go",
+        "byteorder.go",
+        "byteorder_big_endian.go",
+        "gen.go",
+        "ip.go",
+        "log.go",
+        "minmax.go",
+        "new_connection_id.go",
+        "newconnectionid_linkedlist.go",
+        "packet_interval.go",
+        "packetinterval_linkedlist.go",
+        "rand.go",
+        "rtt_stats.go",
+        "streamframe_interval.go",
+        "timer.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/internal/utils",
+    visibility = ["//:__subpackages__"],
+    deps = ["//internal/protocol:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "atomic_bool_test.go",
+        "buffered_write_closer_test.go",
+        "byteoder_big_endian_test.go",
+        "ip_test.go",
+        "log_test.go",
+        "minmax_test.go",
+        "rand_test.go",
+        "rtt_stats_test.go",
+        "timer_test.go",
+        "utils_suite_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

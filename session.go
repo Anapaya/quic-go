@@ -285,7 +285,7 @@ var newSession = func(
 	s.ctx, s.ctxCancel = context.WithCancel(context.WithValue(context.Background(), SessionTracingKey, tracingID))
 	s.sentPacketHandler, s.receivedPacketHandler = ackhandler.NewAckHandler(
 		0,
-		getMaxPacketSize(s.conn.RemoteAddr()),
+		getMaxPacketSize(s.conn.RemoteAddr(), s.version),
 		s.rttStats,
 		s.perspective,
 		s.tracer,
@@ -412,7 +412,7 @@ var newClientSession = func(
 	s.ctx, s.ctxCancel = context.WithCancel(context.WithValue(context.Background(), SessionTracingKey, tracingID))
 	s.sentPacketHandler, s.receivedPacketHandler = ackhandler.NewAckHandler(
 		initialPacketNumber,
-		getMaxPacketSize(s.conn.RemoteAddr()),
+		getMaxPacketSize(s.conn.RemoteAddr(), s.version),
 		s.rttStats,
 		s.perspective,
 		s.tracer,
@@ -815,7 +815,7 @@ func (s *session) handleHandshakeConfirmed() {
 		maxPacketSize = utils.MinByteCount(maxPacketSize, protocol.MaxPacketBufferSize)
 		s.mtuDiscoverer = newMTUDiscoverer(
 			s.rttStats,
-			getMaxPacketSize(s.conn.RemoteAddr()),
+			getMaxPacketSize(s.conn.RemoteAddr(), s.version),
 			maxPacketSize,
 			func(size protocol.ByteCount) {
 				s.sentPacketHandler.SetMaxDatagramSize(size)

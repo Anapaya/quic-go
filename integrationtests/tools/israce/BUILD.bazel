@@ -1,0 +1,11 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "norace.go",
+        "race.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/integrationtests/tools/israce",
+    visibility = ["//visibility:public"],
+)

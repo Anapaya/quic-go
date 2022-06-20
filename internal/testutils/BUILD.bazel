@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["testutils.go"],
+    importpath = "github.com/lucas-clemente/quic-go/internal/testutils",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/handshake:go_default_library",
+        "//internal/protocol:go_default_library",
+        "//internal/wire:go_default_library",
+    ],
+)

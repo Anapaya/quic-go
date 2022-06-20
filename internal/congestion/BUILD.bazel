@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bandwidth.go",
+        "clock.go",
+        "cubic.go",
+        "cubic_sender.go",
+        "hybrid_slow_start.go",
+        "interface.go",
+        "pacer.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/internal/congestion",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "//internal/utils:go_default_library",
+        "//logging:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "bandwidth_test.go",
+        "congestion_suite_test.go",
+        "cubic_sender_test.go",
+        "cubic_test.go",
+        "hybrid_slow_start_test.go",
+        "pacer_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "//internal/utils:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

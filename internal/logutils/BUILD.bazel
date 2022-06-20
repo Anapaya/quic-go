@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["frame.go"],
+    importpath = "github.com/lucas-clemente/quic-go/internal/logutils",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/protocol:go_default_library",
+        "//internal/wire:go_default_library",
+        "//logging:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "frame_test.go",
+        "logutils_suite_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//internal/wire:go_default_library",
+        "//logging:go_default_library",
+        "@com_github_onsi_ginkgo//:go_default_library",
+        "@com_github_onsi_gomega//:go_default_library",
+    ],
+)

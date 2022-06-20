@@ -111,8 +111,11 @@ func (p *packetContents) ToAckHandlerPacket(now time.Time, q *retransmissionQueu
 	}
 }
 
-func getMaxPacketSize(addr net.Addr) protocol.ByteCount {
+func getMaxPacketSize(addr net.Addr, version protocol.VersionNumber) protocol.ByteCount {
 	maxSize := protocol.ByteCount(protocol.MinInitialPacketSize)
+	if protocol.IsSCIONVersion(version) {
+		maxSize = protocol.MinSCIONInitialPacketSize
+	}
 	// If this is not a UDP address, we don't know anything about the MTU.
 	// Use the minimum size of an Initial packet as the max packet size.
 	if udpAddr, ok := addr.(*net.UDPAddr); ok {
@@ -200,7 +203,7 @@ func newPacketPacker(
 		framer:              framer,
 		acks:                acks,
 		pnManager:           packetNumberManager,
-		maxPacketSize:       getMaxPacketSize(remoteAddr),
+		maxPacketSize:       getMaxPacketSize(remoteAddr, version),
 	}
 }
 
@@ -354,6 +357,10 @@ func (p *packetPacker) MaybePackAckPacket(handshakeConfirmed bool) (*packedPacke
 
 // size is the expected size of the packet, if no padding was applied.
 func (p *packetPacker) initialPaddingLen(frames []ackhandler.Frame, size protocol.ByteCount) protocol.ByteCount {
+	// With QUIC/SCION protocol, no padding is added.
+	if protocol.IsSCIONVersion(p.version) {
+		return 0
+	}
 	// For the server, only ack-eliciting Initial packets need to be padded.
 	if p.perspective == protocol.PerspectiveServer && !ackhandler.HasAckElicitingFrames(frames) {
 		return 0

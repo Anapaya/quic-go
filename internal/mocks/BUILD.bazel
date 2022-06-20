@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "congestion.go",
+        "connection_flow_controller.go",
+        "crypto_setup.go",
+        "long_header_opener.go",
+        "mockgen.go",
+        "short_header_opener.go",
+        "short_header_sealer.go",
+        "stream_flow_controller.go",
+    ],
+    importpath = "github.com/lucas-clemente/quic-go/internal/mocks",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/handshake:go_default_library",
+        "//internal/protocol:go_default_library",
+        "//internal/qtls:go_default_library",
+        "@com_github_golang_mock//gomock:go_default_library",
+    ],
+)
