@@ -82,6 +82,10 @@ const MaxLargePacketBufferSize = 20 * 1024
 // MinInitialPacketSize is the minimum size an Initial packet is required to have.
 const MinInitialPacketSize = 1200
 
+// MinSCIONInitialPacketSize is the minimum size an Initial packet is required to have
+// in the SCION version of the protocol.
+const MinSCIONInitialPacketSize = 600
+
 // MinUnknownVersionPacketSize is the minimum size a packet with an unknown version
 // needs to have in order to trigger a Version Negotiation packet.
 const MinUnknownVersionPacketSize = MinInitialPacketSize
