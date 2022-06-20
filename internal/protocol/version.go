@@ -22,11 +22,37 @@ const (
 	VersionDraft29 VersionNumber = 0xff00001d
 	Version1       VersionNumber = 0x1
 	Version2       VersionNumber = 0x6b3343cf
+
+	VersionSCIONExperimental VersionNumber = 0x5c10000f
 )
 
 // SupportedVersions lists the versions that the server supports
 // must be in sorted descending order
 var SupportedVersions = []VersionNumber{Version1, Version2, VersionDraft29}
+
+// NativelySupportedVersions lists the versions that are natively
+// supported by upstream quic-go.
+var NativelySupportedVersions []VersionNumber
+
+// Use init method to avoid merge conflicts.
+func init() {
+	NativelySupportedVersions = append([]VersionNumber(nil), SupportedVersions...)
+
+	// Prefer the native versions over SCIONExperimental to keep the default
+	// configuration backwards compatible.
+	SupportedVersions = append(SupportedVersions, VersionSCIONExperimental)
+}
+
+func IsSCIONVersion(v VersionNumber) bool {
+	return v >= 0x5c100000 && v <= 0x5c10000f
+}
+
+func GetMinInitialPacketSize(v VersionNumber) ByteCount {
+	if IsSCIONVersion(v) {
+		return MinSCIONInitialPacketSize
+	}
+	return MinInitialPacketSize
+}
 
 // IsValidVersion says if the version is known to quic-go
 func IsValidVersion(v VersionNumber) bool {
@@ -40,6 +66,8 @@ func (vn VersionNumber) String() string {
 		return "unknown"
 	case VersionDraft29:
 		return "draft-29"
+	case VersionSCIONExperimental:
+		return "scion-experimental"
 	case Version1:
 		return "v1"
 	case Version2:
