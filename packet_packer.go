@@ -111,8 +111,8 @@ func (p *packetContents) ToAckHandlerPacket(now time.Time, q *retransmissionQueu
 	}
 }
 
-func getMaxPacketSize(addr net.Addr) protocol.ByteCount {
-	maxSize := protocol.ByteCount(protocol.MinInitialPacketSize)
+func getMaxPacketSize(addr net.Addr, version protocol.VersionNumber) protocol.ByteCount {
+	maxSize := protocol.GetMinInitialPacketSize(version)
 	// If this is not a UDP address, we don't know anything about the MTU.
 	// Use the minimum size of an Initial packet as the max packet size.
 	if udpAddr, ok := addr.(*net.UDPAddr); ok {
@@ -200,7 +200,7 @@ func newPacketPacker(
 		framer:              framer,
 		acks:                acks,
 		pnManager:           packetNumberManager,
-		maxPacketSize:       getMaxPacketSize(remoteAddr),
+		maxPacketSize:       getMaxPacketSize(remoteAddr, version),
 	}
 }
 
@@ -370,7 +370,7 @@ func (p *packetPacker) initialPaddingLen(frames []ackhandler.Frame, size protoco
 func (p *packetPacker) PackCoalescedPacket() (*coalescedPacket, error) {
 	maxPacketSize := p.maxPacketSize
 	if p.perspective == protocol.PerspectiveClient {
-		maxPacketSize = protocol.MinInitialPacketSize
+		maxPacketSize = protocol.GetMinInitialPacketSize(p.version)
 	}
 	var initialHdr, handshakeHdr, appDataHdr *wire.ExtendedHeader
 	var initialPayload, handshakePayload, appDataPayload *payload

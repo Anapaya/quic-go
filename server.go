@@ -334,7 +334,7 @@ func (s *baseServer) handlePacketImpl(p *receivedPacket) bool /* is the buffer s
 	if !hdr.IsLongHeader {
 		panic(fmt.Sprintf("misrouted packet: %#v", hdr))
 	}
-	if hdr.Type == protocol.PacketTypeInitial && p.Size() < protocol.MinInitialPacketSize {
+	if hdr.Type == protocol.PacketTypeInitial && p.Size() < protocol.GetMinInitialPacketSize(hdr.Version) {
 		s.logger.Debugf("Dropping a packet that is too small to be a valid Initial (%d bytes)", p.Size())
 		if s.config.Tracer != nil {
 			s.config.Tracer.DroppedPacket(p.remoteAddr, logging.PacketTypeInitial, p.Size(), logging.PacketDropUnexpectedPacket)
