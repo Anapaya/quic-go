@@ -2,7 +2,6 @@ package quic
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -297,6 +296,7 @@ var newConnection = func(
 	if qlogTrace != nil {
 		s.qlogger = qlogTrace.AddProducer()
 	}
+	initialPacketSize := s.initialPacketSize()
 	if origDestConnID.Len() > 0 {
 		s.logID = origDestConnID.String()
 	} else {
@@ -321,7 +321,7 @@ var newConnection = func(
 	s.rttStats.SetInitialRTT(rtt)
 	s.sentPacketHandler = ackhandler.NewSentPacketHandler(
 		0,
-		s.config.initialPacketSize(),
+		initialPacketSize,
 		s.rttStats,
 		&s.connStats,
 		clientAddressValidated,
@@ -331,7 +331,7 @@ var newConnection = func(
 		s.qlogger,
 		s.logger,
 	)
-	s.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(s.config.initialPacketSize())))
+	s.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
 	statelessResetToken := statelessResetter.GetStatelessResetToken(srcConnID)
 	params := &wire.TransportParameters{
 		InitialMaxStreamDataBidiLocal:   protocol.ByteCount(s.config.InitialStreamReceiveWindow),
@@ -456,9 +456,10 @@ var newClientConnection = func(
 			s.rttStats.SetInitialRTT(token.rtt)
 		}
 	}
+	initialPacketSize := s.initialPacketSize()
 	s.sentPacketHandler = ackhandler.NewSentPacketHandler(
 		initialPacketNumber,
-		s.config.initialPacketSize(),
+		initialPacketSize,
 		s.rttStats,
 		&s.connStats,
 		false, // has no effect
@@ -468,7 +469,7 @@ var newClientConnection = func(
 		s.qlogger,
 		s.logger,
 	)
-	s.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(s.config.initialPacketSize())))
+	s.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
 	params := &wire.TransportParameters{
 		InitialMaxStreamDataBidiRemote: protocol.ByteCount(s.config.InitialStreamReceiveWindow),
 		InitialMaxStreamDataBidiLocal:  protocol.ByteCount(s.config.InitialStreamReceiveWindow),
@@ -926,7 +927,7 @@ func (c *Conn) switchToNewPath(tr *Transport, now monotime.Time) {
 		}
 	}
 
-	initialPacketSize := protocol.ByteCount(cmp.Or(c.config.InitialPacketSize, protocol.MinInitialPacketSize))
+	initialPacketSize := c.initialPacketSize()
 	c.sentPacketHandler.MigratedPath(now, initialPacketSize)
 	c.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
 	c.mtuDiscoverer.Reset(initialPacketSize, c.maxMTU())
@@ -1325,7 +1326,7 @@ func (c *Conn) handleShortHeaderPacket(
 		return true, err
 	}
 	c.queueControlFrame(&wire.NewTokenFrame{Token: token})
-	initialPacketSize := protocol.ByteCount(cmp.Or(c.config.InitialPacketSize, protocol.MinInitialPacketSize))
+	initialPacketSize := c.initialPacketSize()
 	c.sentPacketHandler.MigratedPath(p.rcvTime, initialPacketSize)
 	c.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
 	c.mtuDiscoverer.Reset(initialPacketSize, c.maxMTU())
@@ -1359,8 +1360,9 @@ func (c *Conn) handleLongHeaderPacket(
 		return c.handleRetryPacket(hdr, p.data, p.rcvTime), nil
 	}
 
-	// A server must discard Initial packets carried in UDP datagrams smaller than 1200 bytes.
-	if c.perspective == protocol.PerspectiveServer && hdr.Type == protocol.PacketTypeInitial && datagramSize < protocol.MinInitialPacketSize {
+	// A server must discard Initial packets carried in UDP datagrams smaller than 1200 bytes
+	// (600 bytes for the SCION version).
+	if c.perspective == protocol.PerspectiveServer && hdr.Type == protocol.PacketTypeInitial && datagramSize < protocol.GetMinInitialPacketSize(hdr.Version) {
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
 				Header: qlog.PacketHeader{
@@ -2965,12 +2967,13 @@ func (c *Conn) sendPackedCoalescedPacket(packet *coalescedPacket, ecn protocol.E
 	packetSize := packet.buffer.Len()
 	err := c.conn.Write(packet.buffer.Data, 0, ecn)
 	packet.buffer.Release()
+	initialPacketSize := c.initialPacketSize()
 	if err != nil {
-		if !udp.IsSendMsgSizeErr(err) || c.config.InitialPacketSize != 0 {
+		// Only fall back if there is a smaller size to fall back to.
+		if !udp.IsSendMsgSizeErr(err) || c.config.InitialPacketSize != 0 || initialPacketSize <= protocol.MinInitialPacketSize {
 			return err
 		}
 	}
-	initialPacketSize := c.config.initialPacketSize()
 	if packetSize >= initialPacketSize {
 		if err != nil {
 			initialPacketSize = protocol.MinInitialPacketSize
@@ -3009,7 +3012,7 @@ func (c *Conn) maxPacketSize() protocol.ByteCount {
 		return protocol.MinInitialPacketSize
 	}
 	if c.mtuDiscoverer == nil {
-		return c.config.initialPacketSize()
+		return c.initialPacketSize()
 	}
 	return c.mtuDiscoverer.CurrentSize()
 }
@@ -3303,6 +3306,17 @@ func (c *Conn) NextConnection(ctx context.Context) (*Conn, error) {
 		c.streamsMap.UseResetMaps()
 		return c, nil
 	}
+}
+
+func (c *Conn) initialPacketSize() protocol.ByteCount {
+	if c.config.InitialPacketSize != 0 {
+		return protocol.ByteCount(c.config.InitialPacketSize)
+	}
+	// XXX: Upstream defaults to protocol.InitialPacketSize (1280) and falls back
+	// to 1200 bytes on EMSGSIZE. However, we still rely on the old behavior for
+	// now and default to the minimum Initial size of the version (600 bytes for
+	// SCION, 1200 bytes otherwise).
+	return protocol.GetMinInitialPacketSize(c.version)
 }
 
 // estimateMaxPayloadSize estimates the maximum payload size for short header packets.
