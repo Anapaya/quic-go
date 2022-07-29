@@ -18,18 +18,28 @@ const (
 
 // The version numbers, making grepping easier
 const (
-	VersionTLS               VersionNumber = 0x1
-	VersionWhatever          VersionNumber = math.MaxUint32 - 1 // for when the version doesn't matter
-	VersionUnknown           VersionNumber = math.MaxUint32
-	VersionDraft29           VersionNumber = 0xff00001d
-	Version1                 VersionNumber = 0x1
+	VersionTLS      VersionNumber = 0x1
+	VersionWhatever VersionNumber = math.MaxUint32 - 1 // for when the version doesn't matter
+	VersionUnknown  VersionNumber = math.MaxUint32
+	VersionDraft29  VersionNumber = 0xff00001d
+	Version1        VersionNumber = 0x1
+
 	VersionSCIONExperimental VersionNumber = 0x5c10000f
 )
 
 // SupportedVersions lists the versions that the server supports
 // must be in sorted descending order
 var SupportedVersions = []VersionNumber{
+	Version1,
+	VersionDraft29,
+	// Prefer the native versions over SCIONExperimental to keep the default
+	// configuration backwards compatible.
 	VersionSCIONExperimental,
+}
+
+// NativeSuppertedVersions lists the versions that are natively
+// supported by upstream quic-go.
+var NativeSuppertedVersions = []VersionNumber{
 	Version1,
 	VersionDraft29,
 }
