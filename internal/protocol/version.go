@@ -37,9 +37,9 @@ var SupportedVersions = []VersionNumber{
 	VersionSCIONExperimental,
 }
 
-// NativeSuppertedVersions lists the versions that are natively
+// NativelySupportedVersions lists the versions that are natively
 // supported by upstream quic-go.
-var NativeSuppertedVersions = []VersionNumber{
+var NativelySupportedVersions = []VersionNumber{
 	Version1,
 	VersionDraft29,
 }
