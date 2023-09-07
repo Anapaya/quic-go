@@ -67,6 +67,13 @@ func wrapConn(pc net.PacketConn) (rawConn, error) {
 			}
 		}
 	}
+
+	if !supportsDF {
+		_, supportsDF = pc.(interface {
+			NotFragmented()
+		})
+	}
+
 	c, ok := pc.(OOBCapablePacketConn)
 	if !ok {
 		utils.DefaultLogger.Infof("PacketConn is not a net.UDPConn. Disabling optimizations possible on UDP connections.")
