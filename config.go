@@ -39,8 +39,8 @@ func validateConfig(config *Config) error {
 	if config.MaxConnectionReceiveWindow > quicvarint.Max {
 		config.MaxConnectionReceiveWindow = quicvarint.Max
 	}
-	if config.InitialPacketSize > 0 && config.InitialPacketSize < protocol.MinInitialPacketSize {
-		config.InitialPacketSize = protocol.MinInitialPacketSize
+	if config.InitialPacketSize > 0 && config.InitialPacketSize < protocol.MinSCIONInitialPacketSize {
+		config.InitialPacketSize = protocol.MinSCIONInitialPacketSize
 	}
 	if config.InitialPacketSize > protocol.MaxPacketBufferSize {
 		config.InitialPacketSize = protocol.MaxPacketBufferSize

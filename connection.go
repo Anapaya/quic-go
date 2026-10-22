@@ -911,7 +911,7 @@ func (c *Conn) idleTimeoutStartTime() monotime.Time {
 }
 
 func (c *Conn) switchToNewPath(tr *Transport, now monotime.Time) {
-	initialPacketSize := protocol.ByteCount(c.config.InitialPacketSize)
+	initialPacketSize := max(protocol.ByteCount(c.config.InitialPacketSize), protocol.GetMinInitialPacketSize(c.version))
 	c.sentPacketHandler.MigratedPath(now, initialPacketSize)
 	maxPacketSize := protocol.ByteCount(protocol.MaxPacketBufferSize)
 	if c.peerParams.MaxUDPPayloadSize > 0 && c.peerParams.MaxUDPPayloadSize < maxPacketSize {
@@ -1290,14 +1290,15 @@ func (c *Conn) handleShortHeaderPacket(
 		return true, nil
 	}
 	c.pathManager.SwitchToPath(p.remoteAddr)
-	c.sentPacketHandler.MigratedPath(p.rcvTime, protocol.ByteCount(c.config.InitialPacketSize))
+	initialPacketSize := max(protocol.ByteCount(c.config.InitialPacketSize), protocol.GetMinInitialPacketSize(c.version))
+	c.sentPacketHandler.MigratedPath(p.rcvTime, initialPacketSize)
 	maxPacketSize := protocol.ByteCount(protocol.MaxPacketBufferSize)
 	if c.peerParams.MaxUDPPayloadSize > 0 && c.peerParams.MaxUDPPayloadSize < maxPacketSize {
 		maxPacketSize = c.peerParams.MaxUDPPayloadSize
 	}
 	c.mtuDiscoverer.Reset(
 		p.rcvTime,
-		protocol.ByteCount(c.config.InitialPacketSize),
+		initialPacketSize,
 		maxPacketSize,
 	)
 	c.conn.ChangeRemoteAddr(p.remoteAddr, p.info)
@@ -3147,7 +3148,7 @@ func (c *Conn) NextConnection(ctx context.Context) (*Conn, error) {
 
 func (c *Conn) initialPacketSize() protocol.ByteCount {
 	if c.config.InitialPacketSize != protocol.InitialPacketSize {
-		return protocol.ByteCount(c.config.InitialPacketSize)
+		return max(protocol.ByteCount(c.config.InitialPacketSize), protocol.GetMinInitialPacketSize(c.version))
 	}
 	// XXX: InitialPacketSize has been adjusted in
 	// https://github.com/quic-go/quic-go/pull/4500/files. However, we still rely on
