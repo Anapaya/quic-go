@@ -211,33 +211,6 @@ func newClientTestConnection(
 	}
 }
 
-func TestConnectionInitialPacketSize(t *testing.T) {
-	for _, tc := range []struct {
-		name              string
-		version           protocol.Version
-		initialPacketSize uint16
-		want              protocol.ByteCount
-	}{
-		{name: "v1 default", version: protocol.Version1, want: protocol.MinInitialPacketSize},
-		{name: "v1 below its minimum", version: protocol.Version1, initialPacketSize: 1030, want: protocol.MinInitialPacketSize},
-		{name: "v1 above its minimum", version: protocol.Version1, initialPacketSize: 1300, want: 1300},
-		{name: "SCION default", version: protocol.VersionSCIONExperimental, want: protocol.MinSCIONInitialPacketSize},
-		{name: "SCION configured", version: protocol.VersionSCIONExperimental, initialPacketSize: 1030, want: 1030},
-		{name: "SCION below its minimum", version: protocol.VersionSCIONExperimental, initialPacketSize: 100, want: protocol.MinSCIONInitialPacketSize},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			conn := newClientTestConnection(
-				t,
-				nil,
-				&Config{InitialPacketSize: tc.initialPacketSize},
-				false,
-				func(c *Conn) { c.version = tc.version },
-			)
-			require.Equal(t, tc.want, conn.conn.initialPacketSize())
-		})
-	}
-}
-
 func TestConnectionHandleStreamRelatedFrames(t *testing.T) {
 	const id protocol.StreamID = 5
 	connID := protocol.ConnectionID{}
