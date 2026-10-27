@@ -1307,7 +1307,7 @@ func (c *Conn) handleShortHeaderPacket(
 	}
 	destConnID, frames, shouldSwitchPath := c.pathManager.HandlePacket(p.remoteAddr, p.rcvTime, pathChallenge, isNonProbing)
 	if len(frames) > 0 {
-		probe, buf, err := c.packer.PackPathProbePacket(destConnID, frames, c.version)
+		probe, buf, err := c.packer.PackPathProbePacket(destConnID, frames, c.initialPacketSize(), c.version)
 		if err != nil {
 			return true, err
 		}
@@ -2141,7 +2141,7 @@ func (c *Conn) handlePathChallengeFrame(f *wire.PathChallengeFrame, path pathID,
 	if !ok {
 		return nil
 	}
-	probe, buf, err := c.packer.PackPathProbePacket(connID, []ackhandler.Frame{{Frame: resp, Handler: emptyHandler{}}}, c.version)
+	probe, buf, err := c.packer.PackPathProbePacket(connID, []ackhandler.Frame{{Frame: resp, Handler: emptyHandler{}}}, c.initialPacketSize(), c.version)
 	if err != nil {
 		return err
 	}
@@ -2579,7 +2579,7 @@ func (c *Conn) sendPackets(now monotime.Time) error {
 		if pm := c.pathManagerOutgoing.Load(); pm != nil {
 			connID, frame, tr, ok := pm.NextPathToProbe()
 			if ok {
-				probe, buf, err := c.packer.PackPathProbePacket(connID, []ackhandler.Frame{frame}, c.version)
+				probe, buf, err := c.packer.PackPathProbePacket(connID, []ackhandler.Frame{frame}, c.initialPacketSize(), c.version)
 				if err != nil {
 					return err
 				}
@@ -2969,8 +2969,9 @@ func (c *Conn) sendConnectionClose(e error) ([]byte, error) {
 
 func (c *Conn) maxPacketSize() protocol.ByteCount {
 	if c.perspective == protocol.PerspectiveServer && c.peerParams == nil {
-		// Use 1200-byte server packets until we've received the client's transport parameters.
-		return protocol.MinInitialPacketSize
+		// Use the minimum Initial size of the version (1200 bytes, 600 bytes for SCION)
+		// until we've received the client's transport parameters.
+		return protocol.GetMinInitialPacketSize(c.version)
 	}
 	if c.mtuDiscoverer == nil {
 		return c.initialPacketSize()
@@ -3260,14 +3261,11 @@ func (c *Conn) NextConnection(ctx context.Context) (*Conn, error) {
 }
 
 func (c *Conn) initialPacketSize() protocol.ByteCount {
-	if c.config.InitialPacketSize != 0 {
-		return protocol.ByteCount(c.config.InitialPacketSize)
+	minSize := protocol.GetMinInitialPacketSize(c.version)
+	if c.config.InitialPacketSize == 0 {
+		return minSize
 	}
-	// XXX: Upstream defaults to protocol.InitialPacketSize (1280) and falls back
-	// to 1200 bytes on EMSGSIZE. However, we still rely on the old behavior for
-	// now and default to the minimum Initial size of the version (600 bytes for
-	// SCION, 1200 bytes otherwise).
-	return protocol.GetMinInitialPacketSize(c.version)
+	return max(protocol.ByteCount(c.config.InitialPacketSize), minSize)
 }
 
 // estimateMaxPayloadSize estimates the maximum payload size for short header packets.
