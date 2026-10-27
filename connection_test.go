@@ -3507,8 +3507,8 @@ func testConnectionPathValidation(t *testing.T, isNATRebinding, disableMTU, df b
 			unpacker.EXPECT().UnpackShortHeader(gomock.Any(), gomock.Any()).Return(
 				protocol.PacketNumber(10), protocol.PacketNumberLen2, protocol.KeyPhaseZero, payload, nil,
 			),
-			tc.packer.EXPECT().PackPathProbePacket(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-				func(_ protocol.ConnectionID, frames []ackhandler.Frame, _ protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error) {
+			tc.packer.EXPECT().PackPathProbePacket(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ protocol.ConnectionID, frames []ackhandler.Frame, _ protocol.ByteCount, _ protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error) {
 					pathChallenge = frames[0].Frame.(*wire.PathChallengeFrame)
 					return shortHeaderPacket{IsPathProbePacket: true}, udp.GetPacketBuffer(), nil
 				},
@@ -3752,8 +3752,8 @@ func testConnectionMigration(t *testing.T, enabled bool) {
 		shortHeaderPacket{}, errNothingToPack,
 	).AnyTimes()
 	packedProbe := make(chan struct{})
-	tc.packer.EXPECT().PackPathProbePacket(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(protocol.ConnectionID, []ackhandler.Frame, protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error) {
+	tc.packer.EXPECT().PackPathProbePacket(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(protocol.ConnectionID, []ackhandler.Frame, protocol.ByteCount, protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error) {
 			defer close(packedProbe)
 			return shortHeaderPacket{IsPathProbePacket: true}, udp.GetPacketBuffer(), nil
 		},

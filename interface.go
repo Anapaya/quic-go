@@ -176,10 +176,9 @@ type Config struct {
 	// Under most circumstances, it is not necessary to manually set this value,
 	// since path MTU discovery quickly finds the path's MTU.
 	// If set too high, the path might not support packets of that size, leading to a timeout of the QUIC handshake.
-	// If set to 0, it defaults to 1280 bytes and falls back to 1200 bytes if the first write at that size
-	// returns a "message too long" error. An explicitly set value is kept as the lower limit;
-	// a "message too long" error at that size fails the handshake instead.
-	// Values below 1200 are invalid.
+	// Values below the minimum of the version (1200 for QUIC v1, 600 for the SCION version) are raised to that minimum.
+	// If unset, the minimum of the version is used.
+	// A "message too long" error when sending at that size fails the handshake.
 	InitialPacketSize uint16
 	// DisablePathMTUDiscovery disables Path MTU Discovery (RFC 8899).
 	// This allows the sending of QUIC packets that fully utilize the available MTU of the path.

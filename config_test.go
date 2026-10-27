@@ -58,7 +58,7 @@ func TestConfigValidation(t *testing.T) {
 		// too small
 		conf = &Config{InitialPacketSize: 10}
 		require.NoError(t, validateConfig(conf))
-		require.Equal(t, uint16(1200), conf.InitialPacketSize)
+		require.Equal(t, uint16(protocol.MinSCIONInitialPacketSize), conf.InitialPacketSize)
 
 		// too large
 		conf = &Config{InitialPacketSize: protocol.MaxPacketBufferSize + 1}

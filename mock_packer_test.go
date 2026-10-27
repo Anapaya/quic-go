@@ -320,9 +320,9 @@ func (c *MockPackerPackPTOProbePacketCall) DoAndReturn(f func(protocol.Encryptio
 }
 
 // PackPathProbePacket mocks base method.
-func (m *MockPacker) PackPathProbePacket(arg0 protocol.ConnectionID, arg1 []ackhandler.Frame, arg2 protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error) {
+func (m *MockPacker) PackPathProbePacket(arg0 protocol.ConnectionID, arg1 []ackhandler.Frame, arg2 protocol.ByteCount, arg3 protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PackPathProbePacket", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "PackPathProbePacket", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(shortHeaderPacket)
 	ret1, _ := ret[1].(*udp.PacketBuffer)
 	ret2, _ := ret[2].(error)
@@ -330,9 +330,9 @@ func (m *MockPacker) PackPathProbePacket(arg0 protocol.ConnectionID, arg1 []ackh
 }
 
 // PackPathProbePacket indicates an expected call of PackPathProbePacket.
-func (mr *MockPackerMockRecorder) PackPathProbePacket(arg0, arg1, arg2 any) *MockPackerPackPathProbePacketCall {
+func (mr *MockPackerMockRecorder) PackPathProbePacket(arg0, arg1, arg2, arg3 any) *MockPackerPackPathProbePacketCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PackPathProbePacket", reflect.TypeOf((*MockPacker)(nil).PackPathProbePacket), arg0, arg1, arg2)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PackPathProbePacket", reflect.TypeOf((*MockPacker)(nil).PackPathProbePacket), arg0, arg1, arg2, arg3)
 	return &MockPackerPackPathProbePacketCall{Call: call}
 }
 
@@ -348,13 +348,13 @@ func (c *MockPackerPackPathProbePacketCall) Return(arg0 shortHeaderPacket, arg1 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockPackerPackPathProbePacketCall) Do(f func(protocol.ConnectionID, []ackhandler.Frame, protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error)) *MockPackerPackPathProbePacketCall {
+func (c *MockPackerPackPathProbePacketCall) Do(f func(protocol.ConnectionID, []ackhandler.Frame, protocol.ByteCount, protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error)) *MockPackerPackPathProbePacketCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockPackerPackPathProbePacketCall) DoAndReturn(f func(protocol.ConnectionID, []ackhandler.Frame, protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error)) *MockPackerPackPathProbePacketCall {
+func (c *MockPackerPackPathProbePacketCall) DoAndReturn(f func(protocol.ConnectionID, []ackhandler.Frame, protocol.ByteCount, protocol.Version) (shortHeaderPacket, *udp.PacketBuffer, error)) *MockPackerPackPathProbePacketCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
