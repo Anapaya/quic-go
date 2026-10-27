@@ -826,8 +826,9 @@ func (p *packetPacker) PackPathProbePacket(connID protocol.ConnectionID, frames 
 		frames: frames,
 		length: l,
 	}
-	padding := protocol.MinInitialPacketSize - p.shortHeaderPacketLength(connID, pnLen, payload) - protocol.ByteCount(s.Overhead())
-	packet, err := p.appendShortHeaderPacket(buf, connID, pn, pnLen, s.KeyPhase(), payload, padding, protocol.MinInitialPacketSize, s, false, v)
+	minSize :=  GetMinInitialPacketSize(v)
+	padding := minSize - p.shortHeaderPacketLength(connID, pnLen, payload) - protocol.ByteCount(s.Overhead())
+	packet, err := p.appendShortHeaderPacket(buf, connID, pn, pnLen, s.KeyPhase(), payload, padding, minSize, s, false, v)
 	if err != nil {
 		return shortHeaderPacket{}, nil, err
 	}

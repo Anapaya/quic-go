@@ -911,7 +911,7 @@ func (c *Conn) idleTimeoutStartTime() monotime.Time {
 }
 
 func (c *Conn) switchToNewPath(tr *Transport, now monotime.Time) {
-	initialPacketSize := max(protocol.ByteCount(c.config.InitialPacketSize), protocol.GetMinInitialPacketSize(c.version))
+    initialPacketSize = c.initialPacketSize()
 	c.sentPacketHandler.MigratedPath(now, initialPacketSize)
 	maxPacketSize := protocol.ByteCount(protocol.MaxPacketBufferSize)
 	if c.peerParams.MaxUDPPayloadSize > 0 && c.peerParams.MaxUDPPayloadSize < maxPacketSize {
@@ -1290,7 +1290,7 @@ func (c *Conn) handleShortHeaderPacket(
 		return true, nil
 	}
 	c.pathManager.SwitchToPath(p.remoteAddr)
-	initialPacketSize := max(protocol.ByteCount(c.config.InitialPacketSize), protocol.GetMinInitialPacketSize(c.version))
+	initialPacketSize := c.initialPacketSize()
 	c.sentPacketHandler.MigratedPath(p.rcvTime, initialPacketSize)
 	maxPacketSize := protocol.ByteCount(protocol.MaxPacketBufferSize)
 	if c.peerParams.MaxUDPPayloadSize > 0 && c.peerParams.MaxUDPPayloadSize < maxPacketSize {
@@ -2882,7 +2882,7 @@ func (c *Conn) maxPacketSize() protocol.ByteCount {
 		// * If the first packet didn't contain the entire ClientHello, all we can do is ACK that packet. We don't
 		//   need a lot of bytes for that.
 		// * If it did, we will have processed the transport parameters and initialized the MTU discoverer.
-		return protocol.MinInitialPacketSize
+		return GetMinInitialPacketSize(c.version)
 	}
 	return c.mtuDiscoverer.CurrentSize()
 }
@@ -3147,13 +3147,11 @@ func (c *Conn) NextConnection(ctx context.Context) (*Conn, error) {
 }
 
 func (c *Conn) initialPacketSize() protocol.ByteCount {
-	if c.config.InitialPacketSize != protocol.InitialPacketSize {
-		return max(protocol.ByteCount(c.config.InitialPacketSize), protocol.GetMinInitialPacketSize(c.version))
+	minSize := protocol.GetMinInitialPacketSize(c.version)
+	if c.config.InitialPacketSize == 0 {
+		return minSize
 	}
-	// XXX: InitialPacketSize has been adjusted in
-	// https://github.com/quic-go/quic-go/pull/4500/files. However, we still rely on
-	// the old behavior for now.
-	return protocol.GetMinInitialPacketSize(c.version)
+	return max(protocol.ByteCount(c.config.InitialPacketSize), minSize)
 }
 
 // estimateMaxPayloadSize estimates the maximum payload size for short header packets.

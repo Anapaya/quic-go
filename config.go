@@ -101,9 +101,7 @@ func populateConfig(config *Config) *Config {
 		maxIncomingUniStreams = 0
 	}
 	initialPacketSize := config.InitialPacketSize
-	if initialPacketSize == 0 {
-		initialPacketSize = protocol.InitialPacketSize
-	}
+
 
 	return &Config{
 		GetConfigForClient:               config.GetConfigForClient,
