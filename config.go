@@ -102,7 +102,6 @@ func populateConfig(config *Config) *Config {
 	}
 	initialPacketSize := config.InitialPacketSize
 
-
 	return &Config{
 		GetConfigForClient:               config.GetConfigForClient,
 		Versions:                         versions,

@@ -911,7 +911,7 @@ func (c *Conn) idleTimeoutStartTime() monotime.Time {
 }
 
 func (c *Conn) switchToNewPath(tr *Transport, now monotime.Time) {
-    initialPacketSize = c.initialPacketSize()
+	initialPacketSize := c.initialPacketSize()
 	c.sentPacketHandler.MigratedPath(now, initialPacketSize)
 	maxPacketSize := protocol.ByteCount(protocol.MaxPacketBufferSize)
 	if c.peerParams.MaxUDPPayloadSize > 0 && c.peerParams.MaxUDPPayloadSize < maxPacketSize {
@@ -1275,7 +1275,7 @@ func (c *Conn) handleShortHeaderPacket(
 	}
 	destConnID, frames, shouldSwitchPath := c.pathManager.HandlePacket(p.remoteAddr, p.rcvTime, pathChallenge, isNonProbing)
 	if len(frames) > 0 {
-		probe, buf, err := c.packer.PackPathProbePacket(destConnID, frames, c.version)
+		probe, buf, err := c.packer.PackPathProbePacket(destConnID, frames, c.initialPacketSize(), c.version)
 		if err != nil {
 			return true, err
 		}
@@ -2496,7 +2496,7 @@ func (c *Conn) sendPackets(now monotime.Time) error {
 		if pm := c.pathManagerOutgoing.Load(); pm != nil {
 			connID, frame, tr, ok := pm.NextPathToProbe()
 			if ok {
-				probe, buf, err := c.packer.PackPathProbePacket(connID, []ackhandler.Frame{frame}, c.version)
+				probe, buf, err := c.packer.PackPathProbePacket(connID, []ackhandler.Frame{frame}, c.initialPacketSize(), c.version)
 				if err != nil {
 					return err
 				}
@@ -2882,7 +2882,7 @@ func (c *Conn) maxPacketSize() protocol.ByteCount {
 		// * If the first packet didn't contain the entire ClientHello, all we can do is ACK that packet. We don't
 		//   need a lot of bytes for that.
 		// * If it did, we will have processed the transport parameters and initialized the MTU discoverer.
-		return GetMinInitialPacketSize(c.version)
+		return protocol.GetMinInitialPacketSize(c.version)
 	}
 	return c.mtuDiscoverer.CurrentSize()
 }
