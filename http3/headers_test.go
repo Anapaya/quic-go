@@ -418,11 +418,11 @@ var _ = Describe("Response", func() {
 
 	It("parses trailers", func() {
 		headers := []qpack.HeaderField{
-			{Name: "content-length", Value: "42"},
+			{Name: "x-checksum", Value: "42"},
 		}
 		hdr, err := parseTrailers(headers)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(hdr.Get("Content-Length")).To(Equal("42"))
+		Expect(hdr.Get("X-Checksum")).To(Equal("42"))
 	})
 
 	It("parses trailers", func() {

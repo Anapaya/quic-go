@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -84,12 +85,8 @@ func parseHeaders(headers []qpack.HeaderField, isRequest bool) (header, error) {
 	var readFirstRegularHeader, readContentLength bool
 	var contentLengthStr string
 	for _, h := range headers {
-		// field names need to be lowercase, see section 4.2 of RFC 9114
-		if strings.ToLower(h.Name) != h.Name {
-			return header{}, fmt.Errorf("header field is not lower-case: %s", h.Name)
-		}
-		if !httpguts.ValidHeaderFieldValue(h.Value) {
-			return header{}, fmt.Errorf("invalid header field value for %s: %q", h.Name, h.Value)
+		if err := validateHeaderFieldNameAndValue(h); err != nil {
+			return header{}, err
 		}
 		if h.IsPseudo() {
 			if readFirstRegularHeader {
@@ -121,16 +118,8 @@ func parseHeaders(headers []qpack.HeaderField, isRequest bool) (header, error) {
 				return header{}, fmt.Errorf("invalid response pseudo header: %s", h.Name)
 			}
 		} else {
-			if !httpguts.ValidHeaderFieldName(h.Name) {
-				return header{}, fmt.Errorf("invalid header field name: %q", h.Name)
-			}
-			for _, invalidField := range invalidHeaderFields {
-				if h.Name == invalidField {
-					return header{}, fmt.Errorf("invalid header field name: %q", h.Name)
-				}
-			}
-			if h.Name == "te" && h.Value != "trailers" {
-				return header{}, fmt.Errorf("invalid TE header field value: %q", h.Value)
+			if err := validateRegularHeaderField(h); err != nil {
+				return header{}, err
 			}
 			readFirstRegularHeader = true
 			switch h.Name {
@@ -161,11 +150,53 @@ func parseHeaders(headers []qpack.HeaderField, isRequest bool) (header, error) {
 	return hdr, nil
 }
 
+func validateHeaderFieldNameAndValue(h qpack.HeaderField) error {
+	// field names need to be lowercase, see section 4.2 of RFC 9114
+	if strings.ToLower(h.Name) != h.Name {
+		return fmt.Errorf("header field is not lower-case: %s", h.Name)
+	}
+	if !httpguts.ValidHeaderFieldValue(h.Value) {
+		return fmt.Errorf("invalid header field value for %s: %q", h.Name, h.Value)
+	}
+	return nil
+}
+
+func validateRegularHeaderField(h qpack.HeaderField) error {
+	if !httpguts.ValidHeaderFieldName(h.Name) {
+		return fmt.Errorf("invalid header field name: %q", h.Name)
+	}
+	if slices.Contains(invalidHeaderFields[:], h.Name) {
+		return fmt.Errorf("invalid header field name: %q", h.Name)
+	}
+	if h.Name == "te" && h.Value != "trailers" {
+		return fmt.Errorf("invalid TE header field value: %q", h.Value)
+	}
+	return nil
+}
+
+func validateTrailerHeaderField(h qpack.HeaderField) error {
+	if err := validateRegularHeaderField(h); err != nil {
+		return err
+	}
+	if !httpguts.ValidTrailerHeader(h.Name) {
+		return fmt.Errorf("invalid trailer field name: %q", h.Name)
+	}
+	return nil
+}
+
+// parseTrailers parses the trailer fields.
+// The size of the field section is limited by decodeHeaderBlock.
 func parseTrailers(headers []qpack.HeaderField) (http.Header, error) {
 	h := make(http.Header, len(headers))
 	for _, field := range headers {
+		if err := validateHeaderFieldNameAndValue(field); err != nil {
+			return nil, err
+		}
 		if field.IsPseudo() {
 			return nil, fmt.Errorf("http3: received pseudo header in trailer: %s", field.Name)
+		}
+		if err := validateTrailerHeaderField(field); err != nil {
+			return nil, err
 		}
 		h.Add(field.Name, field.Value)
 	}

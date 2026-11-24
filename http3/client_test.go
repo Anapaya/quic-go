@@ -588,7 +588,7 @@ var _ = Describe("Client", func() {
 
 			trailerBuf := &bytes.Buffer{}
 			enc := qpack.NewEncoder(trailerBuf)
-			Expect(enc.WriteField(qpack.HeaderField{Name: "This-Is-A-Trailer", Value: "0"})).To(Succeed())
+			Expect(enc.WriteField(qpack.HeaderField{Name: "this-is-a-trailer", Value: "0"})).To(Succeed())
 			Expect(enc.Close()).To(Succeed())
 			b := (&headersFrame{Length: uint64(trailerBuf.Len())}).Append(nil)
 			b = append(b, trailerBuf.Bytes()...)
@@ -644,7 +644,7 @@ var _ = Describe("Client", func() {
 			{
 				trailerBuf := &bytes.Buffer{}
 				enc := qpack.NewEncoder(trailerBuf)
-				Expect(enc.WriteField(qpack.HeaderField{Name: "This-Is-A-Trailer", Value: "0"})).To(Succeed())
+				Expect(enc.WriteField(qpack.HeaderField{Name: "this-is-a-trailer", Value: "0"})).To(Succeed())
 				Expect(enc.Close()).To(Succeed())
 				b := (&headersFrame{Length: uint64(trailerBuf.Len())}).Append(nil)
 				b = append(b, trailerBuf.Bytes()...)
@@ -654,7 +654,7 @@ var _ = Describe("Client", func() {
 			{
 				trailerBuf := &bytes.Buffer{}
 				enc := qpack.NewEncoder(trailerBuf)
-				Expect(enc.WriteField(qpack.HeaderField{Name: "This-Is-A-Trailer", Value: "1"})).To(Succeed())
+				Expect(enc.WriteField(qpack.HeaderField{Name: "this-is-a-trailer", Value: "1"})).To(Succeed())
 				Expect(enc.Close()).To(Succeed())
 				b := (&headersFrame{Length: uint64(trailerBuf.Len())}).Append(nil)
 				b = append(b, trailerBuf.Bytes()...)
@@ -688,7 +688,7 @@ var _ = Describe("Client", func() {
 			{
 				trailerBuf := &bytes.Buffer{}
 				enc := qpack.NewEncoder(trailerBuf)
-				Expect(enc.WriteField(qpack.HeaderField{Name: "This-Is-A-Trailer", Value: "0"})).To(Succeed())
+				Expect(enc.WriteField(qpack.HeaderField{Name: "this-is-a-trailer", Value: "0"})).To(Succeed())
 				Expect(enc.Close()).To(Succeed())
 				b := (&headersFrame{Length: uint64(trailerBuf.Len())}).Append(nil)
 				b = append(b, trailerBuf.Bytes()...)

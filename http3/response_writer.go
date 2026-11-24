@@ -308,6 +308,10 @@ func (w *responseWriter) writeTrailers() error {
 	enc := qpack.NewEncoder(&b)
 	for trailer := range w.trailers {
 		trailerName := strings.ToLower(strings.TrimPrefix(trailer, http.TrailerPrefix))
+		// Skip fields that are not allowed in trailers. The peer would reject the trailers.
+		if !httpguts.ValidTrailerHeader(trailerName) {
+			continue
+		}
 		if vals, ok := w.header[trailer]; ok {
 			for _, val := range vals {
 				if err := enc.WriteField(qpack.HeaderField{Name: trailerName, Value: val}); err != nil {
