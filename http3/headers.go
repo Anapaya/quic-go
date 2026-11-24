@@ -14,6 +14,47 @@ import (
 	"github.com/quic-go/qpack"
 )
 
+var errHeaderTooLarge = errors.New("http3: headers too large")
+
+// decodeHeaderBlock decodes a QPACK-encoded field section.
+// It returns errHeaderTooLarge if the decoded field section is larger than sizeLimit.
+// RFC 9114, section 4.2.2:
+// The size of a field list is calculated based on the uncompressed size of fields,
+// including the length of the name and value in bytes plus an overhead of 32 bytes for each field.
+func decodeHeaderBlock(b []byte, sizeLimit uint64) ([]qpack.HeaderField, error) {
+	var (
+		fields   []qpack.HeaderField
+		size     uint64
+		tooLarge bool
+	)
+	// Use a dedicated decoder instead of qpack.Decoder.DecodeFull, which keeps all decoded fields
+	// in memory, no matter how large the decoded field section is.
+	decoder := qpack.NewDecoder(func(hf qpack.HeaderField) {
+		if tooLarge {
+			return
+		}
+		size += uint64(len(hf.Name)) + uint64(len(hf.Value)) + 32
+		if size > sizeLimit {
+			tooLarge = true
+			fields = nil
+			return
+		}
+		fields = append(fields, hf)
+	})
+	if len(b) > 0 {
+		if _, err := decoder.Write(b); err != nil {
+			return nil, err
+		}
+	}
+	if err := decoder.Close(); err != nil {
+		return nil, err
+	}
+	if tooLarge {
+		return nil, errHeaderTooLarge
+	}
+	return fields, nil
+}
+
 type header struct {
 	// Pseudo header fields defined in RFC 9114
 	Path      string

@@ -231,8 +231,13 @@ func (s *requestStream) ReadResponse() (*http.Response, error) {
 		s.Stream.CancelWrite(quic.StreamErrorCode(ErrCodeRequestIncomplete))
 		return nil, fmt.Errorf("http3: failed to read response headers: %w", err)
 	}
-	hfs, err := s.decoder.DecodeFull(headerBlock)
+	hfs, err := decodeHeaderBlock(headerBlock, s.maxHeaderBytes)
 	if err != nil {
+		if errors.Is(err, errHeaderTooLarge) {
+			s.Stream.CancelRead(quic.StreamErrorCode(ErrCodeExcessiveLoad))
+			s.Stream.CancelWrite(quic.StreamErrorCode(ErrCodeExcessiveLoad))
+			return nil, fmt.Errorf("http3: failed to decode response headers: %w", err)
+		}
 		// TODO: use the right error code
 		s.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeGeneralProtocolError), "")
 		return nil, fmt.Errorf("http3: failed to decode response headers: %w", err)

@@ -130,14 +130,14 @@ func (c *connection) openRequestStream(
 
 func (c *connection) decodeTrailers(r io.Reader, l, maxHeaderBytes uint64) (http.Header, error) {
 	if l > maxHeaderBytes {
-		return nil, fmt.Errorf("HEADERS frame too large: %d bytes (max: %d)", l, maxHeaderBytes)
+		return nil, fmt.Errorf("http3: HEADERS frame too large: %d bytes (max: %d)", l, maxHeaderBytes)
 	}
 
 	b := make([]byte, l)
 	if _, err := io.ReadFull(r, b); err != nil {
 		return nil, err
 	}
-	fields, err := c.decoder.DecodeFull(b)
+	fields, err := decodeHeaderBlock(b, maxHeaderBytes)
 	if err != nil {
 		return nil, err
 	}

@@ -616,8 +616,10 @@ func (s *Server) handleRequest(conn *connection, str quic.Stream, datagrams *dat
 		return
 	}
 	if hf.Length > s.maxHeaderBytes() {
-		str.CancelRead(quic.StreamErrorCode(ErrCodeFrameError))
-		str.CancelWrite(quic.StreamErrorCode(ErrCodeFrameError))
+		// stop the client from sending more data
+		str.CancelRead(quic.StreamErrorCode(ErrCodeExcessiveLoad))
+		// send a 431 Response (Request Header Fields Too Large)
+		s.rejectWithHeaderFieldsTooLarge(str, conn, datagrams)
 		return
 	}
 	headerBlock := make([]byte, hf.Length)
@@ -626,8 +628,15 @@ func (s *Server) handleRequest(conn *connection, str quic.Stream, datagrams *dat
 		str.CancelWrite(quic.StreamErrorCode(ErrCodeRequestIncomplete))
 		return
 	}
-	hfs, err := decoder.DecodeFull(headerBlock)
+	hfs, err := decodeHeaderBlock(headerBlock, s.maxHeaderBytes())
 	if err != nil {
+		if errors.Is(err, errHeaderTooLarge) {
+			// stop the client from sending more data
+			str.CancelRead(quic.StreamErrorCode(ErrCodeExcessiveLoad))
+			// send a 431 Response (Request Header Fields Too Large)
+			s.rejectWithHeaderFieldsTooLarge(str, conn, datagrams)
+			return
+		}
 		// TODO: use the right error code
 		conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeGeneralProtocolError), "expected first frame to be a HEADERS frame")
 		return
@@ -717,6 +726,14 @@ func (s *Server) handleRequest(conn *connection, str quic.Stream, datagrams *dat
 	str.CancelRead(quic.StreamErrorCode(ErrCodeNoError))
 
 	str.Close()
+}
+
+func (s *Server) rejectWithHeaderFieldsTooLarge(str quic.Stream, conn *connection, datagrams *datagrammer) {
+	hstr := newStream(str, conn, datagrams, nil)
+	defer hstr.Close()
+	r := newResponseWriter(hstr, conn, false, s.Logger)
+	r.WriteHeader(http.StatusRequestHeaderFieldsTooLarge)
+	r.Flush()
 }
 
 // Close the server immediately, aborting requests and sending CONNECTION_CLOSE frames to connected clients.

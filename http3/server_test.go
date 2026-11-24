@@ -642,11 +642,12 @@ var _ = Describe("Server", func() {
 				setRequest(append(requestData, b...))
 				done := make(chan struct{})
 				str.EXPECT().Write(gomock.Any()).DoAndReturn(responseBuf.Write).AnyTimes()
-				str.EXPECT().CancelRead(quic.StreamErrorCode(ErrCodeFrameError))
-				str.EXPECT().CancelWrite(quic.StreamErrorCode(ErrCodeFrameError)).Do(func(quic.StreamErrorCode) { close(done) })
+				str.EXPECT().CancelRead(quic.StreamErrorCode(ErrCodeExcessiveLoad))
+				str.EXPECT().Close().Do(func() error { close(done); return nil })
 
 				s.handleConn(conn)
 				Eventually(done).Should(BeClosed())
+				expectHeaderFieldsTooLargeResponse(responseBuf)
 			})
 
 			It("handles a request for which the client immediately resets the stream", func() {
@@ -698,15 +699,16 @@ var _ = Describe("Server", func() {
 				req, err := http.NewRequest(http.MethodGet, "https://"+string(url), nil)
 				Expect(err).ToNot(HaveOccurred())
 				setRequest(encodeRequest(req))
-				str.EXPECT().Write(gomock.Any()).DoAndReturn(func(p []byte) (int, error) {
-					return len(p), nil
-				}).AnyTimes()
+				responseBuf := &bytes.Buffer{}
+				str.EXPECT().Write(gomock.Any()).DoAndReturn(responseBuf.Write).AnyTimes()
 				done := make(chan struct{})
-				str.EXPECT().CancelRead(quic.StreamErrorCode(ErrCodeFrameError))
-				str.EXPECT().CancelWrite(quic.StreamErrorCode(ErrCodeFrameError)).Do(func(quic.StreamErrorCode) { close(done) })
+				str.EXPECT().CancelRead(quic.StreamErrorCode(ErrCodeExcessiveLoad))
+				str.EXPECT().Close().Do(func() error { close(done); return nil })
 
 				s.handleConn(conn)
 				Eventually(done).Should(BeClosed())
+				Consistently(handlerCalled).ShouldNot(BeClosed())
+				expectHeaderFieldsTooLargeResponse(responseBuf)
 			})
 		})
 
@@ -1223,3 +1225,16 @@ var _ = Describe("Server", func() {
 		Expect(receivedConf.EnableDatagrams).To(BeTrue())
 	})
 })
+
+func expectHeaderFieldsTooLargeResponse(buf *bytes.Buffer) {
+	fp := frameParser{r: buf}
+	frame, err := fp.ParseNext()
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, frame).To(BeAssignableToTypeOf(&headersFrame{}))
+	data := make([]byte, frame.(*headersFrame).Length)
+	_, err = io.ReadFull(buf, data)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	hfs, err := qpack.NewDecoder(nil).DecodeFull(data)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, hfs).To(ContainElement(qpack.HeaderField{Name: ":status", Value: "431"}))
+}
